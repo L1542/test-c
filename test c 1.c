@@ -12,22 +12,19 @@ int main()
     printf("Enter amount in That Baht:");
     scanf("%f",&money);
     
-    if(answer == 'D')
-    {
-    bath = money/33.46;
-    printf("%.2f bath = %.2f us dollar",money,bath);
+    if(answer == 'D' , answer == 'd'){
+        bath = money/33.46;
+        printf("%.2f bath = %.2f us dollar",money,bath);
     }
     
-    else if(answer == 'Y')
-    {
-    bath = money/0.29;
-    printf("%.2f bath = %.2f japanese yen",money,bath);
+    else if(answer == 'Y' , answer == 'y'){
+        bath = money/0.29;
+        printf("%.2f bath = %.2f japanese yen",money,bath);
     }
     
-    else if(answer == 'K')
-    {
-    bath = money/35.28;
-    printf("%.2f bath = %.2f korean won",money,bath);
+    else if(answer == 'K' , answer == 'k'){
+        bath = money/35.28;
+        printf("%.2f bath = %.2f korean won",money,bath);
     }
     
 }
