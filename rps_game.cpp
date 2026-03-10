@@ -186,7 +186,8 @@ void Game::playRound(int round) {
         return;
     }
 
-    int b = bot->choose();
+    // รอบแรก Bot เริ่มด้วย Rock (เรียก choose(int c) — overloading)
+    int b = (round == 1) ? bot->choose(1) : bot->choose();
     cout << "You chose: " << convertChoice(p) << endl;
     cout << "Bot chose: " << convertChoice(b) << endl;
     int result = checkWin(p, b);
@@ -278,3 +279,4 @@ int main() {
 
     return 0;
 }
+
