@@ -6,13 +6,11 @@
 #include <algorithm>
 using namespace std;
 
-// ===== Rank Entry Structure =====
 struct RankEntry {
     string name;
     int score;
 };
 
-// ===== Player Class =====
 class Player {
 protected:
     string name;
@@ -28,21 +26,25 @@ Player::Player(string n) {
 }
 
 int Player::choose() {
-    int c;
+    char c;
     while (true) {
         cout << "Choose: 1 = Rock, 2 = Scissors, 3 = Paper (0 = Exit) : ";
-        if (!(cin >> c)) {
-            cout << "Error: Please enter numbers only (0-3)\n";
+        cin >> c;
+
+        // Block if more than 1 character was typed
+        if (cin.peek() != '\n') {
+            cout << "Error: Please enter only ONE character\n";
             cin.clear();
             cin.ignore(1000, '\n');
             continue;
         }
-        if (c == 0) return 0; // Exit signal
-        if (c < 1 || c > 3) {
-            cout << "Error: Number must be between 0 and 3\n";
-            continue;
-        }
-        return c;
+
+        if (c == '0') return 0;
+        if (c == '1') return 1;
+        if (c == '2') return 2;
+        if (c == '3') return 3;
+
+        cout << "Error: Number must be 0, 1, 2, or 3\n";
     }
 }
 
@@ -50,7 +52,6 @@ int Player::choose(int c) {
     return c;
 }
 
-// ===== Bot Class =====
 class Bot : public Player {
 public:
     Bot(string n) : Player(n) {}
@@ -61,7 +62,6 @@ int Bot::choose() {
     return rand() % 3 + 1;
 }
 
-// ===== Rank Class =====
 class Rank {
 private:
     vector<RankEntry> rankList;
@@ -114,7 +114,6 @@ void Rank::showRank() {
     cout << "===================\n";
 }
 
-// ===== Game Class =====
 class Game {
 private:
     Player *player;
@@ -179,6 +178,9 @@ void Game::showResult(Rank &rank) {
     cout << "Player Score: " << scorePlayer << endl;
     cout << "Bot Score: " << scoreBot << endl;
 
+    ofstream file("result.txt");
+    file << "Player " << scorePlayer << " - Bot " << scoreBot;
+    file.close();
 
     if (scorePlayer > scoreBot)
         cout << "You win the game!\n";
@@ -192,7 +194,6 @@ void Game::showResult(Rank &rank) {
     rank.showRank();
 }
 
-// ===== Main =====
 int main() {
     srand(time(0));
 
@@ -206,22 +207,27 @@ int main() {
         cout << "3. Exit\n";
         cout << "Choose: ";
 
-        int menu;
-        if (!(cin >> menu)) {
+        char menu;
+        cin >> menu;
+
+        // Block multi-character menu input too
+        if (cin.peek() != '\n') {
             cin.clear();
             cin.ignore(1000, '\n');
+            cout << "Error: Please enter only ONE character\n";
             continue;
         }
 
-        if (menu == 3) {
+        if (menu == '3') {
             cout << "Goodbye!\n";
             break;
-        } else if (menu == 2) {
+        } else if (menu == '2') {
             rank.showRank();
-        } else if (menu == 1) {
+        } else if (menu == '1') {
             string playerName;
             cout << "Enter your name: ";
             cin >> playerName;
+            cin.ignore(1000, '\n');
 
             Player p(playerName);
             Bot b("Bot");
