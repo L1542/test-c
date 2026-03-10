@@ -1,233 +1,242 @@
-// เกม เป่า ยิง ฉุบ | Project 01418113
-// ไฟล์: users.txt  รูปแบบ → username score
-
 #include <iostream>
+#include <cstdlib>
+#include <ctime>
 #include <fstream>
 #include <vector>
 #include <algorithm>
-#include <ctime>
-#include <string>
-#include <windows.h>
 using namespace std;
 
-// ── CLASS 1 : Player (Abstract Base Class) ──────────
+// ===== Rank Entry Structure =====
+struct RankEntry {
+    string name;
+    int score;
+};
+
+// ===== Player Class =====
 class Player {
 protected:
-    string username;
-    int    score;
-    int    choice;  // 1=ค้อน  2=กรรไกร  3=กระดาษ
+    string name;
 public:
-    Player(string u, int s);
-    virtual void makeChoice() = 0;  // pure virtual
-    string getUsername();
-    int    getScore();
-    void   addScore(int points);
-    int    getChoice();
-    string getChoiceName();
+    Player(string n);
+    virtual int choose();
+    int choose(int c);
+    string getName() { return name; }
 };
 
-Player::Player(string u, int s) : username(u), score(s), choice(0) {}
-string Player::getUsername()        { return username; }
-int    Player::getScore()           { return score; }
-void   Player::addScore(int points) { score += points; }
-int    Player::getChoice()          { return choice; }
-string Player::getChoiceName() {
-    if (choice == 1) return "ค้อน    (Rock)";
-    if (choice == 2) return "กรรไกร  (Scissors)";
-    if (choice == 3) return "กระดาษ  (Paper)";
-    return "ไม่ทราบ";
+Player::Player(string n) {
+    name = n;
 }
 
-// ── CLASS 2 : HumanPlayer (Inheritance #1) ──────────
-class HumanPlayer : public Player {
-public:
-    HumanPlayer(string u, int s);
-    void makeChoice();
-};
-
-HumanPlayer::HumanPlayer(string u, int s) : Player(u, s) {}
-void HumanPlayer::makeChoice() {
-    cout << "\nเลือก  1=ค้อน  2=กรรไกร  3=กระดาษ : ";
+int Player::choose() {
+    int c;
     while (true) {
-        if (!(cin >> choice)) {
+        cout << "Choose: 1 = Rock, 2 = Scissors, 3 = Paper (0 = Exit) : ";
+        if (!(cin >> c)) {
+            cout << "Error: Please enter numbers only (0-3)\n";
             cin.clear();
             cin.ignore(1000, '\n');
-            cout << "กรุณาพิมพ์ 1, 2 หรือ 3 : ";
             continue;
         }
-        if (choice >= 1 && choice <= 3) break;
-        cout << "กรุณาพิมพ์ 1, 2 หรือ 3 : ";
+        if (c == 0) return 0; // Exit signal
+        if (c < 1 || c > 3) {
+            cout << "Error: Number must be between 0 and 3\n";
+            continue;
+        }
+        return c;
     }
 }
 
-// ── CLASS 3 : ComputerPlayer (Inheritance #2) ───────
-class ComputerPlayer : public Player {
-public:
-    ComputerPlayer();
-    void makeChoice();
-};
-
-ComputerPlayer::ComputerPlayer() : Player("Computer", 0) {}
-void ComputerPlayer::makeChoice() {
-    choice = rand() % 3 + 1;
+int Player::choose(int c) {
+    return c;
 }
 
-// ── CLASS 4 : FileManager ───────────────────────────
-// อ่าน/เขียน users.txt  รูปแบบ → username score
-class FileManager {
+// ===== Bot Class =====
+class Bot : public Player {
 public:
-    int  loadScore(string username);              // โหลดคะแนนเดิม (0 ถ้าไม่มี)
-    void save(string username, int score);        // Overloading #1 : บันทึก user เดียว
-    void save(vector<pair<string,int>> ranking);  // Overloading #2 : บันทึก ranking
-    vector<pair<string,int>> loadRanking();       // โหลด ranking เรียงมากไปน้อย
+    Bot(string n) : Player(n) {}
+    int choose();
 };
 
-int FileManager::loadScore(string username) {
-    ifstream file("users.txt");
-    string u; int s;
-    while (file >> u >> s)
-        if (u == username) { file.close(); return s; }
-    file.close();
-    return 0;  // ไม่พบ → คะแนนเริ่มต้น 0
+int Bot::choose() {
+    return rand() % 3 + 1;
 }
 
-// Overloading save #1 : อัปเดตคะแนนของ user คนเดียว
-void FileManager::save(string username, int score) {
-    // อ่านทุก user เข้า memory
-    vector<pair<string,int>> all;
-    ifstream fileIn("users.txt");
-    string u; int s;
-    bool found = false;
-    while (fileIn >> u >> s) {
-        if (u == username) { all.push_back(make_pair(u, score)); found = true; }
-        else                 all.push_back(make_pair(u, s));
+// ===== Rank Class =====
+class Rank {
+private:
+    vector<RankEntry> rankList;
+    string filename = "rank.txt";
+public:
+    void loadRank();
+    void saveRank();
+    void addScore(string name, int score);
+    void showRank();
+};
+
+void Rank::loadRank() {
+    ifstream file(filename);
+    if (!file.is_open()) return;
+    RankEntry entry;
+    while (file >> entry.name >> entry.score) {
+        rankList.push_back(entry);
     }
-    fileIn.close();
-    if (!found) all.push_back(make_pair(username, score));  // user ใหม่ → เพิ่มเข้าไป
-
-    // เขียนทับกลับลงไฟล์
-    ofstream fileOut("users.txt");
-    for (auto &r : all)
-        fileOut << r.first << " " << r.second << "\n";
-    fileOut.close();
-}
-
-// Overloading save #2 : เขียน ranking ทั้งหมดทับ users.txt
-void FileManager::save(vector<pair<string,int>> ranking) {
-    ofstream file("users.txt");
-    for (auto &r : ranking)
-        file << r.first << " " << r.second << "\n";
     file.close();
 }
 
-vector<pair<string,int>> FileManager::loadRanking() {
-    vector<pair<string,int>> ranking;
-    ifstream file("users.txt");
-    string u; int s;
-    while (file >> u >> s)
-        ranking.push_back(make_pair(u, s));
+void Rank::saveRank() {
+    ofstream file(filename);
+    for (auto& e : rankList) {
+        file << e.name << " " << e.score << "\n";
+    }
     file.close();
-    sort(ranking.begin(), ranking.end(),
-        [](const pair<string,int> &a, const pair<string,int> &b) {
-            return a.second > b.second;
-        });
-    return ranking;
 }
 
-// ── CLASS 5 : Game ──────────────────────────────────
+void Rank::addScore(string name, int score) {
+    for (auto& e : rankList) {
+        if (e.name == name) {
+            if (score > e.score) e.score = score;
+            return;
+        }
+    }
+    rankList.push_back({name, score});
+}
+
+void Rank::showRank() {
+    sort(rankList.begin(), rankList.end(), [](RankEntry a, RankEntry b) {
+        return a.score > b.score;
+    });
+    cout << "\n===== RANKING =====\n";
+    int place = 1;
+    for (auto& e : rankList) {
+        cout << place++ << ". " << e.name << " - " << e.score << " pts\n";
+    }
+    if (rankList.empty()) cout << "No records yet.\n";
+    cout << "===================\n";
+}
+
+// ===== Game Class =====
 class Game {
 private:
     Player *player;
-    Player *com;
-    void    printResult();
+    Bot *bot;
+    int scorePlayer = 0;
+    int scoreBot = 0;
+    bool exited = false;
 public:
-    Game(Player *p, Player *c);
-    void play();            // Overloading #1 : 1 รอบ
-    void play(int rounds);  // Overloading #2 : n รอบ
+    Game(Player *p, Bot *b);
+    void playRound(int round);
+    void showResult(Rank &rank);
+    int checkWin(int p, int b);
+    bool isExited() { return exited; }
 };
 
-Game::Game(Player *p, Player *c) : player(p), com(c) {}
-void Game::printResult() {
-    int p = player->getChoice();
-    int c = com->getChoice();
-    cout << "---------------------------------------\n";
-    cout << player->getUsername() << " : " << player->getChoiceName() << "\n";
-    cout << "Computer       : " << com->getChoiceName() << "\n";
-    if (p == c)
-        cout << ">> เสมอ!\n";
-    else if ((p==1&&c==2)||(p==2&&c==3)||(p==3&&c==1)) {
-        cout << ">> " << player->getUsername() << " ชนะ! +1 คะแนน\n";
-        player->addScore(1);
-    } else
-        cout << ">> Computer ชนะ!\n";
-    cout << "คะแนนสะสม : " << player->getScore() << "\n";
+Game::Game(Player *p, Bot *b) {
+    player = p;
+    bot = b;
 }
 
-void Game::play() {
-    player->makeChoice();
-    com->makeChoice();
-    printResult();
+string convertChoice(int c) {
+    if (c == 1) return "Rock";
+    if (c == 2) return "Scissors";
+    if (c == 3) return "Paper";
+    return "";
 }
 
-void Game::play(int rounds) {
-    cout << "\n=== เริ่มเกม " << rounds << " รอบ ===\n";
-    for (int i = 1; i <= rounds; i++) {
-        cout << "\n[ รอบที่ " << i << " ]\n";
-        play();
+void Game::playRound(int round) {
+    cout << "\n----- Round " << round << " -----\n";
+    int p = player->choose();
+    if (p == 0) {
+        cout << "You exited the game.\n";
+        exited = true;
+        return;
+    }
+    int b = bot->choose();
+    cout << "You chose: " << convertChoice(p) << endl;
+    cout << "Bot chose: " << convertChoice(b) << endl;
+    int result = checkWin(p, b);
+    if (result == 1) {
+        cout << "You win this round!\n";
+        scorePlayer++;
+    } else if (result == 2) {
+        cout << "Bot wins this round!\n";
+        scoreBot++;
+    } else {
+        cout << "Draw!\n";
     }
 }
 
-// ── MAIN ────────────────────────────────────────────
+int Game::checkWin(int p, int b) {
+    if (p == b) return 0;
+    if ((p == 1 && b == 2) ||
+        (p == 2 && b == 3) ||
+        (p == 3 && b == 1))
+        return 1;
+    return 2;
+}
+
+void Game::showResult(Rank &rank) {
+    cout << "\n===== FINAL RESULT =====\n";
+    cout << "Player Score: " << scorePlayer << endl;
+    cout << "Bot Score: " << scoreBot << endl;
+
+
+    if (scorePlayer > scoreBot)
+        cout << "You win the game!\n";
+    else if (scoreBot > scorePlayer)
+        cout << "Bot wins the game!\n";
+    else
+        cout << "Game Draw!\n";
+
+    rank.addScore(player->getName(), scorePlayer);
+    rank.saveRank();
+    rank.showRank();
+}
+
+// ===== Main =====
 int main() {
-    SetConsoleOutputCP(65001);
-    SetConsoleCP(65001);
-    srand((unsigned)time(nullptr));
+    srand(time(0));
 
-    FileManager fm;
-    string username;
+    Rank rank;
+    rank.loadRank();
 
-    cout << "========================================\n";
-    cout << "   เกม เป่า ยิง ฉุบ  (Rock Paper Scissors)\n";
-    cout << "========================================\n";
-    cout << "กรอกชื่อของคุณ : ";
-    cin >> username;
-
-    // โหลดคะแนนสะสมเดิม (ถ้ามี)
-    int savedScore = fm.loadScore(username);
-    cout << "[+] สวัสดี " << username << "!  คะแนนสะสม : " << savedScore << " คะแนน\n";
-
-    HumanPlayer    human(username, savedScore);
-    ComputerPlayer computer;
-    Game game(&human, &computer);
-
-    // วน loop จนกว่าจะกด 2 ออก
     while (true) {
-        game.play(3);
+        cout << "\n===== MENU =====\n";
+        cout << "1. Play Game\n";
+        cout << "2. Show Ranking\n";
+        cout << "3. Exit\n";
+        cout << "Choose: ";
 
-        int finalScore = human.getScore();
-        cout << "\n========================================\n";
-        cout << "  คะแนนที่ได้   : +" << (finalScore - savedScore) << " คะแนน\n";
-        cout << "  คะแนนสะสม    : "   << finalScore << " คะแนน\n";
-        cout << "========================================\n";
+        int menu;
+        if (!(cin >> menu)) {
+            cin.clear();
+            cin.ignore(1000, '\n');
+            continue;
+        }
 
-        fm.save(username, finalScore);  // save #1
+        if (menu == 3) {
+            cout << "Goodbye!\n";
+            break;
+        } else if (menu == 2) {
+            rank.showRank();
+        } else if (menu == 1) {
+            string playerName;
+            cout << "Enter your name: ";
+            cin >> playerName;
 
-        auto ranking = fm.loadRanking();
-        cout << "\n========== RANKING ==========\n";
-        for (int i = 0; i < (int)ranking.size(); i++)
-            cout << i+1 << ". " << ranking[i].first
-                 << "  :  " << ranking[i].second << " คะแนน\n";
-        fm.save(ranking);  // save #2
+            Player p(playerName);
+            Bot b("Bot");
+            Game game(&p, &b);
 
-        savedScore = finalScore;  // อัปเดตสำหรับรอบถัดไป
+            for (int i = 1; i <= 3; i++) {
+                game.playRound(i);
+                if (game.isExited()) break;
+            }
 
-        int menuChoice = 0;
-        cout << "\n  1. เล่นอีกครั้ง\n";
-        cout << "  2. ออก\n";
-        cout << "เลือก : ";
-        if (!(cin >> menuChoice) || menuChoice == 2) break;
+            if (!game.isExited()) {
+                game.showResult(rank);
+            }
+        }
     }
 
-    cout << "\nขอบคุณที่เล่น! Goodbye!\n";
     return 0;
 }
