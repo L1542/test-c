@@ -17,7 +17,7 @@ protected:
 public:
     Player(string n);
     virtual int choose();
-    int choose(int c);
+    int choose(int c);          // Overloading #1
     string getName() { return name; }
 };
 
@@ -47,22 +47,23 @@ int Player::choose() {
     }
 }
 
-int Player::choose(int c) {
+int Player::choose(int c) {     // Overloading #2
     return c;
 }
 
-// Inheritance #1: Bot สืบทอดจาก Player
+// ── Inheritance #1: Bot สืบทอดจาก Player ─────────────────────────────────────
 class Bot : public Player {
 public:
     Bot(string n) : Player(n) {}
     virtual int choose();
+    int choose(int c) { return c; }  // Overloading
 };
 
 int Bot::choose() {
     return rand() % 3 + 1;
 }
 
-// Inheritance #2: HardBot สืบทอดจาก Bot
+// ── Inheritance #2: HardBot สืบทอดจาก Bot ────────────────────────────────────
 class HardBot : public Bot {
 private:
     int lastPlayerMove = 0;
@@ -74,10 +75,11 @@ public:
 
 int HardBot::choose() {
     if (lastPlayerMove == 0) return rand() % 3 + 1;
-    if (lastPlayerMove == 1) return 3;
-    if (lastPlayerMove == 2) return 1;
-    return 2;
+    if (lastPlayerMove == 1) return 3; // Counter Rock with Paper
+    if (lastPlayerMove == 2) return 1; // Counter Scissors with Rock
+    return 2;                          // Counter Paper with Scissors
 }
+// ─────────────────────────────────────────────────────────────────────────────
 
 class Rank {
 private:
@@ -152,10 +154,10 @@ void Rank::showRank() {
 
 class Game {
 private:
-    Player*  player;
-    Bot*     bot;
-    HardBot* hardBot;
-    bool     isHard;
+    Player*   player;
+    Bot*      bot;
+    HardBot*  hardBot;    // kept to call rememberMove()
+    bool      isHard;
     int scorePlayer = 0;
     int scoreBot    = 0;
     bool exited     = false;
@@ -190,7 +192,7 @@ void Game::playRound(int round) {
         return;
     }
 
-    // Round 1: Bot เริ่มด้วย Rock (Overloading choose(int))
+    // Round 1: Bot always starts with Rock (uses overloaded choose(int))
     int b = (round == 1) ? bot->choose(1) : bot->choose();
 
     cout << "You chose  : " << convertChoice(p) << "\n";
@@ -207,7 +209,7 @@ void Game::playRound(int round) {
         cout << "Draw!\n";
     }
 
-    // HardBot จำท่า player รอบนี้ไว้ counter รอบหน้า
+    // HardBot remembers the player's last move to counter next round
     if (isHard && hardBot != nullptr) {
         hardBot->rememberMove(p);
     }
@@ -277,6 +279,7 @@ int main() {
             Player p(playerName);
 
             if (menu == '2') {
+                // Hard mode — uses HardBot (Inheritance #2 is actually exercised)
                 HardBot hb("HardBot");
                 Game game(&p, &hb, true);
                 cout << "[Hard Mode] Bot will counter your previous move!\n";
@@ -286,6 +289,7 @@ int main() {
                 }
                 if (!game.isExited()) game.showResult(rank);
             } else {
+                // Normal mode — uses Bot
                 Bot b("Bot");
                 Game game(&p, &b, false);
                 for (int i = 1; i <= 3; i++) {
