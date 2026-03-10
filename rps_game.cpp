@@ -31,7 +31,6 @@ int Player::choose() {
         cout << "Choose: 1 = Rock, 2 = Scissors, 3 = Paper (0 = Exit) : ";
         cin >> c;
 
-        // Block if more than 1 character was typed
         if (cin.peek() != '\n') {
             cout << "Error: Please enter only ONE character\n";
             cin.clear();
@@ -62,6 +61,24 @@ int Bot::choose() {
     return rand() % 3 + 1;
 }
 
+// ── Inheritance #2: HardBot สืบทอดจาก Bot ────────────────────────────────────
+class HardBot : public Bot {
+private:
+    int lastPlayerMove = 0;
+public:
+    HardBot(string n) : Bot(n) {}
+    void rememberMove(int move) { lastPlayerMove = move; }
+    int choose();
+};
+
+int HardBot::choose() {
+    if (lastPlayerMove == 0) return rand() % 3 + 1;
+    if (lastPlayerMove == 1) return 3; // สวน Rock ด้วย Paper
+    if (lastPlayerMove == 2) return 1; // สวน Scissors ด้วย Rock
+    return 2;                          // สวน Paper ด้วย Scissors
+}
+// ─────────────────────────────────────────────────────────────────────────────
+
 class Rank {
 private:
     vector<RankEntry> rankList;
@@ -84,7 +101,7 @@ void Rank::loadRank() {
 }
 
 void Rank::saveRank() {
-     ofstream file(filename);
+    ofstream file(filename);
     file << "================================\n";
     file << "         RANKING BOARD\n";
     file << "================================\n";
@@ -168,6 +185,7 @@ void Game::playRound(int round) {
         exited = true;
         return;
     }
+
     int b = bot->choose();
     cout << "You chose: " << convertChoice(p) << endl;
     cout << "Bot chose: " << convertChoice(b) << endl;
@@ -197,7 +215,6 @@ void Game::showResult(Rank &rank) {
     cout << "Player Score: " << scorePlayer << endl;
     cout << "Bot Score: " << scoreBot << endl;
 
-
     if (scorePlayer > scoreBot)
         cout << "You win the game!\n";
     else if (scoreBot > scorePlayer)
@@ -226,7 +243,6 @@ int main() {
         char menu;
         cin >> menu;
 
-        // Block multi-character menu input too
         if (cin.peek() != '\n') {
             cin.clear();
             cin.ignore(1000, '\n');
@@ -246,7 +262,7 @@ int main() {
             cin.ignore(1000, '\n');
 
             Player p(playerName);
-            Bot b("Bot");
+            Bot b("Bot");   // Bot สุ่มปกติ
             Game game(&p, &b);
 
             for (int i = 1; i <= 3; i++) {
