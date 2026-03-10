@@ -51,17 +51,18 @@ int Player::choose(int c) {
     return c;
 }
 
+// Inheritance #1: Bot สืบทอดจาก Player
 class Bot : public Player {
 public:
     Bot(string n) : Player(n) {}
-    int choose();
+    virtual int choose();
 };
 
 int Bot::choose() {
     return rand() % 3 + 1;
 }
 
-// ── Inheritance #2: HardBot สืบทอดจาก Bot ────────────────────────────────────
+// Inheritance #2: HardBot สืบทอดจาก Bot
 class HardBot : public Bot {
 private:
     int lastPlayerMove = 0;
@@ -73,11 +74,10 @@ public:
 
 int HardBot::choose() {
     if (lastPlayerMove == 0) return rand() % 3 + 1;
-    if (lastPlayerMove == 1) return 3; // สวน Rock ด้วย Paper
-    if (lastPlayerMove == 2) return 1; // สวน Scissors ด้วย Rock
-    return 2;                          // สวน Paper ด้วย Scissors
+    if (lastPlayerMove == 1) return 3;
+    if (lastPlayerMove == 2) return 1;
+    return 2;
 }
-// ─────────────────────────────────────────────────────────────────────────────
 
 class Rank {
 private:
@@ -152,22 +152,26 @@ void Rank::showRank() {
 
 class Game {
 private:
-    Player *player;
-    Bot *bot;
+    Player*  player;
+    Bot*     bot;
+    HardBot* hardBot;
+    bool     isHard;
     int scorePlayer = 0;
-    int scoreBot = 0;
-    bool exited = false;
+    int scoreBot    = 0;
+    bool exited     = false;
 public:
-    Game(Player *p, Bot *b);
+    Game(Player* p, Bot* b, bool hard = false);
     void playRound(int round);
-    void showResult(Rank &rank);
-    int checkWin(int p, int b);
+    void showResult(Rank& rank);
+    int  checkWin(int p, int b);
     bool isExited() { return exited; }
 };
 
-Game::Game(Player *p, Bot *b) {
-    player = p;
-    bot = b;
+Game::Game(Player* p, Bot* b, bool hard) {
+    player  = p;
+    bot     = b;
+    isHard  = hard;
+    hardBot = hard ? dynamic_cast<HardBot*>(b) : nullptr;
 }
 
 string convertChoice(int c) {
@@ -186,10 +190,12 @@ void Game::playRound(int round) {
         return;
     }
 
-    // รอบแรก Bot เริ่มด้วย Rock (เรียก choose(int c) — overloading)
+    // Round 1: Bot เริ่มด้วย Rock (Overloading choose(int))
     int b = (round == 1) ? bot->choose(1) : bot->choose();
-    cout << "You chose: " << convertChoice(p) << endl;
-    cout << "Bot chose: " << convertChoice(b) << endl;
+
+    cout << "You chose  : " << convertChoice(p) << "\n";
+    cout << "Bot chose  : " << convertChoice(b) << "\n";
+
     int result = checkWin(p, b);
     if (result == 1) {
         cout << "You win this round!\n";
@@ -199,6 +205,11 @@ void Game::playRound(int round) {
         scoreBot++;
     } else {
         cout << "Draw!\n";
+    }
+
+    // HardBot จำท่า player รอบนี้ไว้ counter รอบหน้า
+    if (isHard && hardBot != nullptr) {
+        hardBot->rememberMove(p);
     }
 }
 
@@ -211,10 +222,10 @@ int Game::checkWin(int p, int b) {
     return 2;
 }
 
-void Game::showResult(Rank &rank) {
+void Game::showResult(Rank& rank) {
     cout << "\n===== FINAL RESULT =====\n";
-    cout << "Player Score: " << scorePlayer << endl;
-    cout << "Bot Score: " << scoreBot << endl;
+    cout << "Player Score : " << scorePlayer << "\n";
+    cout << "Bot Score    : " << scoreBot    << "\n";
 
     if (scorePlayer > scoreBot)
         cout << "You win the game!\n";
@@ -236,9 +247,10 @@ int main() {
 
     while (true) {
         cout << "\n===== MENU =====\n";
-        cout << "1. Play Game\n";
-        cout << "2. Show Ranking\n";
-        cout << "3. Exit\n";
+        cout << "1. Play Game (Normal Bot)\n";
+        cout << "2. Play Game (Hard Bot)\n";
+        cout << "3. Show Ranking\n";
+        cout << "4. Exit\n";
         cout << "Choose: ";
 
         char menu;
@@ -251,32 +263,39 @@ int main() {
             continue;
         }
 
-        if (menu == '3') {
+        if (menu == '4') {
             cout << "Goodbye!\n";
             break;
-        } else if (menu == '2') {
+        } else if (menu == '3') {
             rank.showRank();
-        } else if (menu == '1') {
+        } else if (menu == '1' || menu == '2') {
             string playerName;
             cout << "Enter your name: ";
             cin >> playerName;
             cin.ignore(1000, '\n');
 
             Player p(playerName);
-            Bot b("Bot");   // Bot สุ่มปกติ
-            Game game(&p, &b);
 
-            for (int i = 1; i <= 3; i++) {
-                game.playRound(i);
-                if (game.isExited()) break;
-            }
-
-            if (!game.isExited()) {
-                game.showResult(rank);
+            if (menu == '2') {
+                HardBot hb("HardBot");
+                Game game(&p, &hb, true);
+                cout << "[Hard Mode] Bot will counter your previous move!\n";
+                for (int i = 1; i <= 3; i++) {
+                    game.playRound(i);
+                    if (game.isExited()) break;
+                }
+                if (!game.isExited()) game.showResult(rank);
+            } else {
+                Bot b("Bot");
+                Game game(&p, &b, false);
+                for (int i = 1; i <= 3; i++) {
+                    game.playRound(i);
+                    if (game.isExited()) break;
+                }
+                if (!game.isExited()) game.showResult(rank);
             }
         }
     }
 
     return 0;
 }
-
