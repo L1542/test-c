@@ -178,10 +178,6 @@ void Game::showResult(Rank &rank) {
     cout << "Player Score: " << scorePlayer << endl;
     cout << "Bot Score: " << scoreBot << endl;
 
-    ofstream file("result.txt");
-    file << "Player " << scorePlayer << " - Bot " << scoreBot;
-    file.close();
-
     if (scorePlayer > scoreBot)
         cout << "You win the game!\n";
     else if (scoreBot > scorePlayer)
