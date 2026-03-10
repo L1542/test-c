@@ -84,10 +84,29 @@ void Rank::loadRank() {
 }
 
 void Rank::saveRank() {
-    ofstream file(filename);
+     ofstream file(filename);
+    file << "================================\n";
+    file << "         RANKING BOARD\n";
+    file << "================================\n";
+
+    sort(rankList.begin(), rankList.end(), [](RankEntry a, RankEntry b) {
+        return a.score > b.score;
+    });
+
+    int place = 1;
     for (auto& e : rankList) {
-        file << e.name << " " << e.score << "\n";
+        string medal = "";
+        if (place == 1) medal = " [1st]";
+        else if (place == 2) medal = " [2nd]";
+        else if (place == 3) medal = " [3rd]";
+        else medal = " [" + to_string(place) + "th]";
+
+        file << medal << " " << e.name << " - " << e.score << " pts\n";
+        place++;
     }
+
+    if (rankList.empty()) file << "  No records yet.\n";
+    file << "================================\n";
     file.close();
 }
 
@@ -177,6 +196,7 @@ void Game::showResult(Rank &rank) {
     cout << "\n===== FINAL RESULT =====\n";
     cout << "Player Score: " << scorePlayer << endl;
     cout << "Bot Score: " << scoreBot << endl;
+
 
     if (scorePlayer > scoreBot)
         cout << "You win the game!\n";
